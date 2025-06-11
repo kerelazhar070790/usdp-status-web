@@ -2,10 +2,21 @@
 
 import useSWR from "swr"
 import { Activity } from "lucide-react"
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts"
 
 type Hourly = {
   timestamp: string
   responseTimeMs: number | null
+  status: 'up' | 'down'
+  retries: number
 }
 
 export default function LatencyCard({ hours = 24 }: { hours?: number }) {
@@ -18,42 +29,26 @@ export default function LatencyCard({ hours = 24 }: { hours?: number }) {
 
   if (error || !data || data.length === 0) return null
 
-  const formatToMYT = (utcStr: string) => {
-    const dateUTC = new Date(utcStr)
-    const dateMYT = new Date(dateUTC.getTime() + 8 * 60 * 60 * 1000)
-    return new Intl.DateTimeFormat('en-MY', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(dateMYT)
-  }
+const formatToMYT = (utcStr: string) => {
+  const dateUTC = new Date(utcStr)
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(dateUTC)
+}
 
-  const latencyValues = data.map((d) => d.responseTimeMs ?? 0)
-  const max = Math.max(...latencyValues, 1)
-  const min = Math.min(...latencyValues)
-  const minY = Math.max(min - 1, 0) // breathing room below the line
-  const maxY = max + 1
-
-  const normalize = (value: number) => {
-    return 100 - ((value - minY) / (maxY - minY)) * 100
-  }
-
-  const avgMs =
-    latencyValues.reduce((a, b) => a + b, 0) / latencyValues.length
-
+  const avgMs = data.reduce((a, b) => a + (b.responseTimeMs ?? 0), 0) / data.length
   const avgSec = (avgMs / 1000).toFixed(3)
 
-  const points = data.map((h, i) => {
-    const x = i * 12
-    const y = normalize(h.responseTimeMs ?? 0)
-    return `${x},${y}`
-  })
-
-  const polygonPoints = [
-    `0,100`,
-    ...points,
-    `${(data.length - 1) * 12},100`,
-  ].join(" ")
+  const chartData = data.map(d => ({
+    ...d,
+    time: formatToMYT(d.timestamp),
+    latency: d.responseTimeMs ?? 0,
+  }))
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mt-6 space-y-6">
@@ -71,42 +66,36 @@ export default function LatencyCard({ hours = 24 }: { hours?: number }) {
         </div>
       </div>
 
-      {/* Flare-style graph */}
-     <div className="relative h-14 w-full bg-gray-50 rounded-md overflow-x-auto overflow-y-hidden">
-        <div className={`absolute left-0 h-full`} style={{ width: `${data.length * 12}px` }}>
-            <svg viewBox={`0 0 ${data.length * 12} 100`} className="h-full w-full">
-          {/* Fill area under line */}
-          <polygon
-            points={polygonPoints}
-            fill="#93c5fd55"
-          />
-          {/* Main line */}
-          <polyline
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="2"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            points={points.join(" ")}
-          />
-          {/* Tooltip points */}
-          {data.map((h, i) => {
-            const x = i * 12
-            const y = normalize(h.responseTimeMs ?? 0)
-            return (
-              <circle
-                key={i}
-                cx={x}
-                cy={y}
-                r={2}
-                fill="#1d4ed8"
-              >
-                <title>{formatToMYT(h.timestamp)} MYT{"\n"}{h.responseTimeMs ?? 0} ms</title>
-              </circle>
-            )
-          })}
-        </svg>
-      </div>
+      <div className="h-40 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 10 }}
+              minTickGap={15}
+            />
+            <YAxis
+              dataKey="latency"
+              unit="ms"
+              tick={{ fontSize: 10 }}
+              allowDecimals={false}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: '12px' }}
+              labelFormatter={(label) => `Time: ${label}`}
+              formatter={(value: any) => [`${value} ms`, 'Latency']}
+            />
+            <Line
+              type="monotone"
+              dataKey="latency"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={{ r: 2 }}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )

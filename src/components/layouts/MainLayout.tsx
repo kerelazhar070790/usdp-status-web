@@ -9,72 +9,76 @@ interface MainLayoutProps {
   children: ReactNode
 }
 
-const navItems = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Logs", href: "/ops/logs" },
-  { name: "Errors", href: "/ops/errors" },
-  { name: "Summary", href: "/vessels/summary" },
-  { name: "On/Offhire", href: "/vessels/onoffhire" },
-  { name: "Incidents", href: "/incidents" },
-]
-
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      {/* Top Navigation */}
-        <header className="bg-white/80 backdrop-blur shadow-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-            
-            {/* Left: Logo + MSSB STATUS */}
-            <div className="flex items-center gap-3">
-                <Image
-                src="/logo-meridian-large.png"
-                alt="Meridian Logo"
-                width={40}
-                height={40}
-                className="rounded"
-                />
-                <span className="text-lg font-bold tracking-wide text-gray-800">
-                MSSB STATUS
-                </span>
-            </div>
+      {/* Top Header - seamless */}
+      <header className="bg-gray-100 border-b">
+        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
+          {/* Logo + System Name */}
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo-meridian-xsmall.png"
+              alt="Meridian Logo"
+              width={32}
+              height={32}
+              className="rounded"
+            />
+            <span className="text-lg font-semibold text-gray-800">MSSB POST STATUS</span>
+          </div>
 
-            {/* Center: Navigation Menu */}
-            <div className="flex items-center gap-2">
-                {navItems.map((item) => (
-                <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`w-32 text-center px-4 py-2 rounded-lg border transition-all text-sm font-medium
-                    ${pathname === item.href
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:text-black"}`}
-                >
-                    {item.name}
-                </Link>
-                ))}
-            </div>
-
-            {/* Right: Logout Button */}
-            <div className="flex items-center">
-                <button
-                className="w-32 text-center px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-sm font-medium transition-all"
-                >
-                Logout
-                </button>
-            </div>
-            </div>
+          {/* Logout */}
+          <div>
+            <Link
+              href="/logout"
+              className="text-sm text-gray-600 hover:text-black"
+            >
+              Logout
+            </Link>
+          </div>
         </div>
-        </header>
-
+      </header>
 
       {/* Page Content */}
-      <main className="flex-1 px-6 py-8">
-        {children}
+      <main className="flex-1 px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {children}
+        </div>
       </main>
+
+      {/* Footer - Flare-style */}
+        <footer className="w-full border-t bg-gray-100 py-4">
+          <div className="max-w-6xl mx-auto px-4 flex justify-between text-sm text-gray-500">
+            {/* Left: Footer Nav Links with even spacing */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {[
+                { name: 'Dashboard', href: '/dashboard' },
+                { name: 'Logs', href: '/ops/logs' },
+                { name: 'Errors', href: '/ops/errors' },
+                { name: 'Summary', href: '/vessels/summary' },
+                { name: 'On/Offhire', href: '/vessels/onoffhire' },
+                { name: 'Incidents', href: '/incidents' },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`hover:text-black ${
+                    pathname === link.href ? 'font-semibold text-black' : ''
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Right: Attribution */}
+            <div className="text-right whitespace-nowrap">
+              Powered by <strong>MVMCC</strong>
+            </div>
+          </div>
+        </footer>
     </div>
   )
 }

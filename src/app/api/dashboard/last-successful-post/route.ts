@@ -16,8 +16,10 @@ export async function GET() {
     const result = await pool.query(`
       SELECT received_at, post_duration_seconds, payload_size_bytes
       FROM mock_post_log
+      WHERE status = 'SUCCESS'
       ORDER BY received_at DESC
       LIMIT 1
+
     `)
 
     if (result.rows.length === 0) {

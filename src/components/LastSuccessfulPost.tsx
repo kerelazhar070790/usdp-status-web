@@ -45,7 +45,9 @@ function formatBytes(bytes: number) {
 
 export default function LastSuccessfulPost() {
   const fetcher = (url: string) => fetch(url).then(res => res.json())
-  const { data, error, isLoading } = useSWR('/api/dashboard/last-successful-post', fetcher)
+  const { data, error, isLoading } = useSWR('/api/dashboard/last-successful-post', fetcher, {
+  refreshInterval: 60000
+  })
 
   if (isLoading) {
     return <div className="bg-white shadow-md rounded-xl p-6 mt-6 text-gray-500">Loading last successful post…</div>

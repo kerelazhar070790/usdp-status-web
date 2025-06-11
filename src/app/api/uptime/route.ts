@@ -21,8 +21,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await pool.query(`
-      SELECT
-        date_trunc('hour', timestamp) AS hour,
+      SELECT date_trunc('hour', timestamp) AT TIME ZONE 'UTC' AS hour,
         COUNT(*) FILTER (WHERE ping_status = TRUE) AS up_count,
         COUNT(*) AS total_count,
         AVG(latency_ms) FILTER (WHERE ping_status = TRUE) AS avg_latency

@@ -26,17 +26,17 @@ export default function LiveUptimeChart({ hours = 24 }: { hours?: number }) {
   const uptimePct = ((upCount / total) * 100).toFixed(2)
 
   const formatToMYT = (utcStr: string) => {
-    const dateUTC = new Date(utcStr)
-    const dateMYT = new Date(dateUTC.getTime() + 8 * 60 * 60 * 1000)
-    return new Intl.DateTimeFormat('en-MY', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(dateMYT)
-  }
+  const dateUTC = new Date(utcStr)
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(dateUTC)
+}
 
   return (
     <div className="bg-white shadow-md rounded-xl p-6 mt-6 space-y-6">
@@ -56,17 +56,20 @@ export default function LiveUptimeChart({ hours = 24 }: { hours?: number }) {
       </div>
 
       {/* Uptime Bars */}
-      <div className="flex gap-1 overflow-x-auto">
-        {data.map((h, i) => (
-          <div
-            key={i}
-            title={`[${formatToMYT(h.timestamp)} MYT]\nStatus: ${h.status.toUpperCase()}\nLatency: ${h.responseTimeMs ?? 'N/A'} ms\nRetries: ${h.retries}`}
-            className={`h-6 w-2 rounded cursor-pointer ${
-              h.status === 'up' ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          ></div>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 min-w-full">
+          {data.map((h, i) => (
+            <div
+              key={i}
+              title={`[${formatToMYT(h.timestamp)} MYT]\nStatus: ${h.status.toUpperCase()}\nLatency: ${h.responseTimeMs ?? 'N/A'} ms\nRetries: ${h.retries}`}
+              className={`h-6 w-2 rounded cursor-pointer ${
+                h.status === 'up' ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            ></div>
+          ))}
+        </div>
       </div>
+
     </div>
   )
 }

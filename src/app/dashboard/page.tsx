@@ -7,11 +7,26 @@ import LiveUptimeChart from "@/components/LiveUptimeChart"
 import LatencyCard from "@/components/LatencyCard"
 import LastSuccessfulPost from "@/components/LastSuccessfulPost"
 import LastFailedPost from "@/components/LastFailedPost"
+import ActiveVesselCount from '@/components/ActiveVesselCount'
+import OnHireVessels from '@/components/OnHireVessels'
+import OffHireVessels from '@/components/OffHireVessels'
+import PostDurationChart from '@/components/PostDurationChart'
 import { useState } from "react"
 
 export default function DashboardPage() {
   const [selectedRange, setSelectedRange] = useState("24h")
   const ranges = ["24h", "7d", "30d", "90d"]
+
+  const getHoursFromRange = (label: string): number => {
+    if (label.endsWith("h")) {
+      return parseInt(label.replace("h", ""))
+    } else if (label.endsWith("d")) {
+      return parseInt(label.replace("d", "")) * 24
+    }
+    return 24 // fallback
+  }
+
+  const hours = getHoursFromRange(selectedRange)
 
   return (
     <MainLayout>
@@ -20,9 +35,6 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center space-y-2">
           <CheckCircle className="text-green-500" size={48} />
           <h1 className="text-2xl font-bold text-gray-800">All Systems Operational</h1>
-          <a href="/incidents" className="text-sm text-gray-500 hover:underline">
-            Incident History →
-          </a>
         </div>
 
         {/* Time Range Selector */}
@@ -39,18 +51,16 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Live Uptime Chart */}
-        <LiveUptimeChart hours={
-            selectedRange.endsWith("h") 
-                ? parseInt(selectedRange.replace("h", ""))
-                : parseInt(selectedRange.replace("d", "")) * 24
-            } />
+        {/* Dynamic Cards */}
+        <LiveUptimeChart hours={hours} />
+        <LatencyCard hours={hours} />
+        <PostDurationChart hours={hours} />
 
-        <LatencyCard hours={parseInt(selectedRange.replace("h", ""))} />
-        {/* Last Successful POST Card */}
         <LastSuccessfulPost />
-        {/* Last Failed POST Card */}
         <LastFailedPost />
+        <ActiveVesselCount />
+        <OnHireVessels />
+        <OffHireVessels />
       </div>
     </MainLayout>
   )

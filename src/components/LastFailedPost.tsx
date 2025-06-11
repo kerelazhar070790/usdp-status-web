@@ -1,23 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { AlertTriangle } from 'lucide-react'
 
 interface FailedPostData {
-  attempt_time: string
+  attempt_time: string | null
   post_duration_seconds: number | null
   payload_size_bytes: number | null
 }
 
 function formatBytes(bytes: number | null): string {
-  if (bytes === null) return 'N/A'
+  if (bytes === null || bytes === undefined) return 'N/A'
   const kb = bytes / 1024
   return `${kb.toFixed(1)} KB`
 }
 
-function formatToMYT(utcString: string): string {
-  const localDate = new Date(utcString)  // already in local time (MYT)
+function formatToMYT(utcString: string | null | undefined): string {
+  if (!utcString) return 'N/A'
+
+  const utcDate = new Date(utcString)
   return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -25,11 +28,15 @@ function formatToMYT(utcString: string): string {
     minute: '2-digit',
     second: '2-digit',
     hour12: false
-  }).format(localDate) + ' MYT'
+  }).format(utcDate) + ' MYT'
 }
 
-function timeAgo(dateStr: string): string {
-  const localDate = new Date(dateStr) // already in local time (MYT)
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'N/A'
+
+  const localDate = new Date(dateStr)
+  if (isNaN(localDate.getTime())) return 'Invalid time'
+
   const diffMs = Date.now() - localDate.getTime()
   const diffSec = Math.floor(diffMs / 1000)
 
@@ -40,18 +47,16 @@ function timeAgo(dateStr: string): string {
   return `${diffHr}h ago`
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.json())
+
 export default function LastFailedPost() {
-  const [data, setData] = useState<FailedPostData | null>(null)
-  const [error, setError] = useState(false)
+  const { data, error } = useSWR<FailedPostData>(
+    '/api/dashboard/last-failed-post',
+    fetcher,
+    { refreshInterval: 60000 }
+  )
 
-  useEffect(() => {
-    fetch('/api/dashboard/last-failed-post')
-      .then(res => res.json())
-      .then(setData)
-      .catch(() => setError(true))
-  }, [])
-
-  if (error || !data) {
+  if (error || !data || !data.attempt_time) {
     return (
       <div className="bg-white shadow-md rounded-xl p-6 mt-6">
         <div className="flex items-center justify-between mb-2">
