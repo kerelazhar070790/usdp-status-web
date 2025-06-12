@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ReactNode } from "react"
 import { usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 interface MainLayoutProps {
   children: ReactNode
@@ -11,6 +12,24 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
+
+const router = useRouter()
+
+const handleLogout = async () => {
+  try {
+    const res = await fetch("/api/logout", {
+      method: "POST",
+    })
+    if (res.ok) {
+      router.push("/login")
+    } else {
+      console.error("Logout error", await res.text())
+    }
+  } catch (err) {
+    console.error("Logout failed", err)
+  }
+}
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -29,15 +48,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <span className="text-lg font-semibold text-gray-800">MSSB POST STATUS</span>
           </div>
 
-          {/* Logout */}
-          <div>
-            <Link
-              href="/logout"
-              className="text-sm text-gray-600 hover:text-black"
-            >
-              Logout
-            </Link>
-          </div>
+        {/* Logout */}
+        <div>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-600 hover:text-black"
+          >
+            Logout
+          </button>
+        </div>
         </div>
       </header>
 
