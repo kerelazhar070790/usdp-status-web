@@ -12,34 +12,61 @@ import timezone from 'dayjs/plugin/timezone'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-function convertToMYT(dateStr: string) {
-  const utc = new Date(dateStr)
-  const myt = new Date(utc.getTime() + 8 * 60 * 60 * 1000)
-  return myt.toLocaleString('en-MY', {
+function formatToMYT(utcString: string | null | undefined): string {
+  if (!utcString) return 'N/A'
+
+  const date = new Date(utcString + 'Z') // force interpret as UTC
+  return new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    month: 'short',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
-  })
+    hour12: false
+  }).format(date) + ' MYT'
 }
 
-const toMYT = (utcString: string) => {
-  return dayjs.utc(utcString).tz('Asia/Kuala_Lumpur').format('DD/MM/YYYY, hh:mm:ss A')
+function convertToCSV(data: any[]) {
+  const header = [
+    'Vessel ID',
+    'Vessel Name',
+    'Trail CTimestamp (MYT)',
+    'POST Time (MYT)',
+    'Payload ID',
+    'Payload',
+    'POST Duration (s)',
+    'Payload Size (bytes)'
+  ]
+
+  const rows = data.map(row => [
+    row.vessel_id,
+    row.vessel_name,
+    formatToMYT(row.rdatetime),
+    formatToMYT(row.attempt_time),
+    row.payload_id,
+    JSON.stringify(row.payload ?? ''), // ✅ Convert payload object to JSON string
+    row.post_duration_seconds ?? '',
+    row.payload_size_bytes ?? ''
+  ])
+
+  const csvContent = [header, ...rows]
+    .map(e => e.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+
+  return csvContent
 }
+
 
 
 // Convert MYT date to UTC string
 const toUTCDateString = (d: Date, endOfDay = false) => {
-  const dateMYT = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }))
-  if (endOfDay) {
-    dateMYT.setHours(23, 59, 59, 999)
-  } else {
-    dateMYT.setHours(0, 0, 0, 0)
-  }
-  return dateMYT.toISOString().split('T')[0]
+  const base = dayjs(d).tz('Asia/Kuala_Lumpur')
+  const mytDate = endOfDay
+    ? base.hour(23).minute(59).second(59).millisecond(999)
+    : base.hour(0).minute(0).second(0).millisecond(0)
+  return mytDate.format('YYYY-MM-DD')
 }
 
 let searchTimeout: NodeJS.Timeout
@@ -159,15 +186,18 @@ export default function LogsPage() {
                   </td>
                 </tr>
               ) : (
-                logs.map((row, idx) => (
+                logs.map((row, idx) => {
+                      console.log('RAW row data:', row.rdatetime, row.attempt_time)
+                  return(
                   <tr key={idx} className="border-t">
                     <td className="px-4 py-2">{row.vessel_id}</td>
                     <td className="px-4 py-2">{row.vessel_name}</td>
-                    <td className="px-4 py-2">{toMYT(row.rdatetime)}</td>
-                    <td className="px-4 py-2">{toMYT(row.attempt_time)}</td>
+                    <td className="px-4 py-2">{formatToMYT(row.rdatetime)}</td>
+                    <td className="px-4 py-2">{formatToMYT(row.attempt_time)}</td>
                     <td className="px-4 py-2">{row.payload_id}</td>
                   </tr>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -203,6 +233,43 @@ export default function LogsPage() {
               className="w-32"
             />
             <Button onClick={handlePageJump} variant="outline">Go</Button>
+            <Button
+              onClick={() => {
+                const csv = convertToCSV(logs)
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.setAttribute('href', url)
+                link.setAttribute('download', `vts_logs_${dayjs(startDate).format('YYYYMMDD')}_to_${dayjs(endDate).format('YYYYMMDD')}.csv`)
+                link.click()
+              }}
+              variant="outline"
+            >
+              Download CSV
+            </Button>
+            <Button
+                onClick={async () => {
+                  const startStr = toUTCDateString(startDate)
+                  const endStr = toUTCDateString(endDate, true)
+                  const params = new URLSearchParams({
+                    startDate: startStr,
+                    endDate: endStr,
+                    search: debouncedSearch,
+                  })
+                  const res = await fetch(`/api/logs/export?${params.toString()}`)
+                  const data = await res.json()
+                  const csv = convertToCSV(data.logs || [])
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                  const url = URL.createObjectURL(blob)
+                  const link = document.createElement('a')
+                  link.setAttribute('href', url)
+                  link.setAttribute('download', `vts_logs_all_${startStr}_to_${endStr}.csv`)
+                  link.click()
+                }}
+                variant="outline"
+              >
+                Download All as CSV
+              </Button>
           </div>
         </div>
       </div>
